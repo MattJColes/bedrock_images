@@ -42,10 +42,10 @@ class PhotoManipulation():
         elif self.theme == PhotoTheme.CAVEMAN:
             self.prompt_text = "Photo of a extremely hairy person wearing caveman outfit. The background of the photo is a forest during autumn with a cave in the distance and a fireplace nearby"
         elif self.theme == PhotoTheme.PROGRAMMER:
-            self.prompt_text = "Photo of a programmer wearing a hoodie. The background of the photo is the inside of their computer lab at night time, very dark, with lots of computer keyboards and screens as well as a few books scattered in the distance, and a coffee mug, lots of dust on a bookshelf"
+            self.prompt_text = "Photo of a scruffy long haired programmer wearing a hoodie and tshirt. The background of the photo is the inside of their computer lab at night time, very dark, with lots of computer keyboards and screens as well as a few books scattered in the distance, and a coffee mug, lots of dust on a bookshelf"
             self.negative_prompt_text = "Blurred, stylized, cartoony, summer, bokeh, murky, green, outdoors"
         elif self.theme == PhotoTheme.DEVSHED:
-            self.prompt_text = "Photo of a software developer wearing a hoodie. They are inside a garden shed cabin with lots of book shelves, computers including keyboards and hardware"
+            self.prompt_text = "Photo of a scruffy medium hair programmer wearing a hoodie and tshirt. Waynes world meets weird science. They are inside a wood garden shed cabin with corrugated iron, lots of book shelves, computers, books, keyboards and hardware"
 
     def create_photo(self):
         pass
@@ -103,6 +103,6 @@ def process_photo(image_filename: str):
     pm.update_photo(photo, mask)
 
 
-people_photos: list = ["photo.png", "photo2.png", "photo_aaron.png", "photo_paul.png", "photo_matt.png"]
+people_photos: list = ["photo.png", "photo2.png", "photo_aaron.png", "photo_paul.png", "photo_matt.png", "photo_bella.png"]
 for person in people_photos:
     process_photo(person)
