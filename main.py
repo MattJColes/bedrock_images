@@ -29,7 +29,7 @@ class PhotoManipulation():
         )
         self.theme: PhotoTheme = theme
         self.prompt_text: str = "Photo"
-        self.negative_prompt_text = "Blurred, stylized, cartoony, summer, bokeh, murky"
+        self.negative_prompt_text: str = "Blurred, stylized, cartoony, summer, bokeh, murky"
         self._define_theme_prompt()
 
     def _define_theme_prompt(self):
@@ -92,6 +92,6 @@ def process_photo(image_filename: str):
     pm.update_photo(photo, mask)
 
 
-people_photos = ["photo_matt.png"]
+people_photos: list = ["photo_matt.png", "photo_paul.png", "photo_aaron.png"]
 for person in people_photos:
     process_photo(person)
