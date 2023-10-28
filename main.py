@@ -18,6 +18,7 @@ class PhotoTheme(Enum):
     CAVEMAN = 3
     PROGRAMMER = 4
     DEVSHED = 5
+    SUPERSTAR = 6
 
 
 class PhotoManipulation():
@@ -36,7 +37,7 @@ class PhotoManipulation():
 
     def _define_theme_prompt(self):
         if self.theme == PhotoTheme.CHRISTMAS:
-            self.prompt_text = "Photo of a person wearing a Santa hat and a Santa outfit. The background of the photo is a snowy forest full of christmas trees during winter season with snow flakes falling from sky and christmas lights in the distance."
+            self.prompt_text = "Photo of a person wearing a Santa hat and a Santa outfit. The background of the photo is a snowy forest full of christmas trees during winter season with snow flakes falling from sky and christmas lights in the distance. Reindeer and elves."
         elif self.theme == PhotoTheme.EASTER:
             self.prompt_text = "Photo of a person wearing an easter bunny outfit. The background of the photo is a forest during autumn season with easter eggs scattered throughout"
         elif self.theme == PhotoTheme.CAVEMAN:
@@ -45,7 +46,10 @@ class PhotoManipulation():
             self.prompt_text = "Photo of a scruffy long haired programmer wearing a hoodie and tshirt. The background of the photo is the inside of their computer lab at night time, very dark, with lots of computer keyboards and screens as well as a few books scattered in the distance, and a coffee mug, lots of dust on a bookshelf"
             self.negative_prompt_text = "Blurred, stylized, cartoony, summer, bokeh, murky, green, outdoors"
         elif self.theme == PhotoTheme.DEVSHED:
-            self.prompt_text = "Photo of a scruffy medium hair programmer wearing a hoodie and tshirt. Waynes world meets weird science. They are inside a wood garden shed cabin with corrugated iron, lots of book shelves, computers, books, keyboards and hardware"
+            self.prompt_text = "Photo of a scruffy, hairy programmer wearing a hoodie and tshirt. Set in the 1990's. They are inside a wood garden shed cabin with corrugated iron, lots of book shelves, computers, books, keyboards and hardware"
+        elif self.theme == PhotoTheme.SUPERSTAR:
+            self.prompt_text = "Photo of a famous popstar wearing a red dress. Background of a music concert"
+
 
     def create_photo(self):
         pass
@@ -97,7 +101,7 @@ class PhotoManipulation():
 
 
 def process_photo(image_filename: str):
-    pm = PhotoManipulation(PhotoTheme.DEVSHED)
+    pm = PhotoManipulation(PhotoTheme.CHRISTMAS)
     photo: Image = Image.open(image_filename)
     mask: Image = pm.create_mask(image_filename)
     pm.update_photo(photo, mask)
