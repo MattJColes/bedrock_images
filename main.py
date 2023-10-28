@@ -89,6 +89,9 @@ class PhotoManipulation():
                     img2 = Image.open(io.BytesIO(artifact.binary))
                     img2.save(f"output_{person}") # Save our completed image with its seed number as the filename.
 
+    def animate_photo(self, photo, mask):
+        pass
+
 
 def process_photo(image_filename: str):
     pm = PhotoManipulation(PhotoTheme.CHRISTMAS)
