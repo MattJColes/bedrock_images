@@ -17,6 +17,7 @@ class PhotoTheme(Enum):
     EASTER = 2
     CAVEMAN = 3
     PROGRAMMER = 4
+    DEVSHED = 5
 
 
 class PhotoManipulation():
@@ -43,6 +44,8 @@ class PhotoManipulation():
         elif self.theme == PhotoTheme.PROGRAMMER:
             self.prompt_text = "Photo of a programmer wearing a hoodie. The background of the photo is the inside of their computer lab at night time, very dark, with lots of computer keyboards and screens as well as a few books scattered in the distance, and a coffee mug, lots of dust on a bookshelf"
             self.negative_prompt_text = "Blurred, stylized, cartoony, summer, bokeh, murky, green, outdoors"
+        elif self.theme == PhotoTheme.DEVSHED:
+            self.prompt_text = "Photo of a software developer wearing a hoodie. They are inside a garden shed cabin with lots of book shelves, computers including keyboards and hardware"
 
     def create_photo(self):
         pass
@@ -94,12 +97,12 @@ class PhotoManipulation():
 
 
 def process_photo(image_filename: str):
-    pm = PhotoManipulation(PhotoTheme.CHRISTMAS)
+    pm = PhotoManipulation(PhotoTheme.DEVSHED)
     photo: Image = Image.open(image_filename)
     mask: Image = pm.create_mask(image_filename)
     pm.update_photo(photo, mask)
 
 
-people_photos: list = ["photo_matt.png", "photo_paul.png", "photo_aaron.png"]
+people_photos: list = ["photo.png", "photo2.png", "photo_aaron.png", "photo_paul.png", "photo_matt.png"]
 for person in people_photos:
     process_photo(person)
