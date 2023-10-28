@@ -14,6 +14,8 @@ from torchvision.transforms import GaussianBlur
 class PhotoTheme(Enum):
     CHRISTMAS = 1
     EASTER = 2
+    CAVEMAN = 3
+    PROGRAMMER = 4
 
 
 class PhotoManipulation():
@@ -32,9 +34,14 @@ class PhotoManipulation():
 
     def _define_theme_prompt(self):
         if self.theme == PhotoTheme.CHRISTMAS:
-            self.prompt_text = "Photo of a person wearing a Santa hat and a Santa outfit. The background of the photo is a snowy forest during winter christmas season"
+            self.prompt_text = "Photo of a person wearing a Santa hat and a Santa outfit. The background of the photo is a snowy forest full of christmas trees during winter season with snow flakes falling from sky and christmas lights in the distance."
         elif self.theme == PhotoTheme.EASTER:
             self.prompt_text = "Photo of a person wearing an easter bunny outfit. The background of the photo is a forest during autumn season with easter eggs scattered throughout"
+        elif self.theme == PhotoTheme.CAVEMAN:
+            self.prompt_text = "Photo of a extremely hairy person wearing caveman outfit. The background of the photo is a forest during autumn with a cave in the distance and a fireplace nearby"
+        elif self.theme == PhotoTheme.PROGRAMMER:
+            self.prompt_text = "Photo of a programmer wearing a hoodie. The background of the photo is the inside of their computer lab at night time, very dark, with lots of computer keyboards and screens as well as a few books scattered in the distance, and a coffee mug, lots of dust on a bookshelf"
+            self.negative_prompt_text = "Blurred, stylized, cartoony, summer, bokeh, murky, green, outdoors"
 
     def create_photo(self):
         pass
@@ -61,7 +68,7 @@ class PhotoManipulation():
             init_image=photo,
             mask_image=mask,
             start_schedule=1.0,
-            end_schedule=0.1,
+            end_schedule=0.0,
             cfg_scale=15.0,
             steps=50,
             width=1024,
@@ -79,12 +86,12 @@ class PhotoManipulation():
 
 
 def process_photo(image_filename: str):
-    pm = PhotoManipulation(PhotoTheme.EASTER)
+    pm = PhotoManipulation(PhotoTheme.CHRISTMAS)
     photo: Image = Image.open(image_filename)
     mask: Image = pm.create_mask(image_filename)
     pm.update_photo(photo, mask)
 
 
-people_photos = ["photo_aaron.png", "photo_bella.png", "photo_paul.png", "photo_matt.png"]
+people_photos = ["photo_matt.png"]
 for person in people_photos:
     process_photo(person)
