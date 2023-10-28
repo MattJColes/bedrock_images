@@ -1,6 +1,7 @@
 import io
 import os
 from enum import Enum
+import warnings
 
 import numpy as np
 from PIL import Image
@@ -79,6 +80,10 @@ class PhotoManipulation():
         )
         for resp in answers:
             for artifact in resp.artifacts:
+                if artifact.finish_reason == generation.FILTER:
+                    warnings.warn(
+                        "Your request activated the API's safety filters and could not be processed."
+                        "Please modify the prompt and try again.")
                 if artifact.type == generation.ARTIFACT_IMAGE:
                     global img2
                     img2 = Image.open(io.BytesIO(artifact.binary))
