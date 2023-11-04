@@ -25,25 +25,18 @@ class PhotoTheme(Enum):
 
 
 class PhotoManipulation():
-    def __init__(self, theme: PhotoTheme = PhotoTheme.CHRISTMAS, mode="repaint"):
+    def __init__(self, theme: PhotoTheme = PhotoTheme.CHRISTMAS):
         self.compute_type = "cuda" # cuda = nvidia, mps = apple silicon, cpu = non gpu accelerated
-        self.mode = mode
-        if self.mode == "repaint":
-            self.scheduler = RePaintScheduler.from_pretrained("google/ddpm-ema-celebahq-256")
-            self.pipe = RePaintPipeline.from_pretrained("google/ddpm-ema-celebahq-256", scheduler=self.scheduler)
-        elif self.mode == "sd-inpaint":
-            self.pipe = StableDiffusionInpaintPipeline.from_pretrained(
-                "stabilityai/stable-diffusion-2-inpainting",
-                torch_dtype=torch.float16,
-            )
-        else:
-            logging.critical("Provide a mode of either `repaint` or `sd-inpaint`")
+        self.pipe = StableDiffusionInpaintPipeline.from_pretrained(
+            "stabilityai/stable-diffusion-2-inpainting",
+            torch_dtype=torch.float16,
+        )
         self.photo_x: int = 512
         self.photo_y: int = 512
         self.pipe.to(self.compute_type)
         self.theme: PhotoTheme = theme
         self.prompt_text: str = "Photo"
-        self.negative_prompt_text: str = "Blurred, stylized, cartoony, summer, bokeh, murky"
+        self.negative_prompt_text: str = "Blurred, stylized, cartoony, summer, bokeh, murky, bad, deformed, ugly, bad anotomy"
         self._define_theme_prompt()
 
     def _define_theme_prompt(self):
@@ -55,7 +48,7 @@ class PhotoManipulation():
             self.prompt_text = "Photo of a extremely hairy person wearing caveman outfit. The background of the photo is a forest during autumn with a cave in the distance and a fireplace nearby"
         elif self.theme == PhotoTheme.PROGRAMMER:
             self.prompt_text = "Photo of a scruffy long haired programmer wearing a hoodie and tshirt. The background of the photo is the inside of their computer lab at night time, very dark, with lots of computer keyboards and screens as well as a few books scattered in the distance, and a coffee mug, lots of dust on a bookshelf"
-            self.negative_prompt_text = "Blurred, stylized, cartoony, summer, bokeh, murky, green, outdoors"
+            self.negative_prompt_text = "Blurred, stylized, cartoony, summer, bokeh, murky, green, outdoors, bad, deformed, ugly, bad anotomy"
         elif self.theme == PhotoTheme.DEVSHED:
             self.prompt_text = "Photo of a scruffy, hairy programmer wearing a hoodie and tshirt. Set in the 1990's. They are inside a wood garden shed cabin with corrugated iron, lots of book shelves, computers, books, keyboards and hardware"
         elif self.theme == PhotoTheme.SUPERSTAR:
@@ -115,45 +108,25 @@ class PhotoManipulation():
 
     def update_photo(self, photo, mask):
         logging.info("Making output photo from base photo")
-        if self.mode == "repaint":
-            photo_output = self.pipe(
-                prompt=self.prompt_text,
-                negative_prompt=self.negative_prompt_text,
-                original_image=photo,
-                mask_image=mask,
-                num_images_per_prompt=1,
-                num_inference_steps=250,
-                jump_length=10,
-                jump_n_sample=10,
-                width=self.photo_x,
-                height=self.photo_y,
-                eta=0.0,
-                generator=torch.Generator(device=self.compute_type).manual_seed(0),
-                output_type="pil"
-            ).images[0]
-            photo_output.save(f"output_{person}") # Save our completed image with its seed number as the filename.
-        elif self.mode == "sd-inpaint":
-            photo_output = self.pipe(
-                prompt=self.prompt_text,
-                negative_prompt=self.negative_prompt_text,
-                image=photo,
-                mask_image=mask,
-                num_images_per_prompt=1,
-                num_inference_steps=250,
-                guidance_scale=7.5,
-                width=self.photo_x,
-                height=self.photo_y,
-                eta=0.0,
-                generator=torch.Generator(device=self.compute_type).manual_seed(0),
-                output_type="pil"
-            ).images[0]
-            photo_output.save(f"output_{person}") # Save our completed image with its seed number as the filename.
-        else:
-            logging.critical("Provide a mode of either `repaint` or `sd-inpaint`")
+        photo_output = self.pipe(
+            prompt=self.prompt_text,
+            negative_prompt=self.negative_prompt_text,
+            image=photo,
+            mask_image=mask,
+            num_images_per_prompt=1,
+            num_inference_steps=250,
+            guidance_scale=7.5,
+            width=self.photo_x,
+            height=self.photo_y,
+            eta=0.0,
+            generator=torch.Generator(device=self.compute_type).manual_seed(0),
+            output_type="pil"
+        ).images[0]
+        photo_output.save(f"output_{person}") # Save our completed image with its seed number as the filename.
 
 
 def process_photo(image_filename: str):
-    pm = PhotoManipulation(theme=PhotoTheme.CHRISTMAS, mode="repaint")
+    pm = PhotoManipulation(theme=PhotoTheme.CHRISTMAS)
     photo: Image = Image.open(image_filename)
     crop_photo: Image = pm.crop_photo(photo)
     mask_photo: Image = pm.create_mask(crop_photo)
