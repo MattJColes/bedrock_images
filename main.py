@@ -116,7 +116,7 @@ class PhotoManipulation():
             image=photo,
             mask_image=mask,
             num_images_per_prompt=1,
-            num_inference_steps=80,
+            num_inference_steps=250,
             guidance_scale=9.5,
             width=self.photo_x,
             height=self.photo_y,
