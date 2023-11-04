@@ -82,10 +82,10 @@ class PhotoManipulation():
             aspect_ratio = photo.height / photo.width 
             new_width = self.photo_x
             new_height = int(new_width * aspect_ratio)
-            photo = photo.resize((new_width, new_height), Image.Resampling.LANCZOS)
+            photo_crop = photo.resize((new_width, new_height), Image.Resampling.LANCZOS)
         if env == "DEV":
             photo_crop.save(f"__crop_{person}")
-        return photo_crop   
+        return photo_crop
 
     def create_mask(self, photo) -> Image:
         logging.info("Creating mask image for photo")
