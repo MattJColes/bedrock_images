@@ -39,8 +39,8 @@ class PhotoManipulation():
         self.repo_id = "stabilityai/stable-diffusion-2-inpainting"
         self.pipe = DiffusionPipeline.from_pretrained(self.repo_id, torch_dtype=torch.float16, revision="fp16")
         self.pipe.scheduler = DPMSolverMultistepScheduler.from_config(self.pipe.scheduler.config)
-        self.photo_x: int = 1024
-        self.photo_y: int = 1024
+        self.photo_x: int = 512
+        self.photo_y: int = 512
         self.pipe.to(self.compute_type)
         self.theme: PhotoTheme = theme
         self.prompt_text: str = "Photo"
@@ -117,7 +117,7 @@ class PhotoManipulation():
             mask_image=mask,
             num_images_per_prompt=1,
             num_inference_steps=250,
-            guidance_scale=8.5,
+            guidance_scale=7.5,
             width=self.photo_x,
             height=self.photo_y,
             eta=0.0,
