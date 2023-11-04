@@ -26,12 +26,21 @@ class PhotoTheme(Enum):
 
 class PhotoManipulation():
     def __init__(self, theme: PhotoTheme = PhotoTheme.CHRISTMAS):
-        self.compute_type = "mps" # cuda = nvidia, mps = apple silicon, cpu = non gpu accelerated
+        # cuda = nvidia, mps = apple silicon, cpu = non gpu accelerated
+        if torch.cuda.is_available():
+            logging.info("Using Nvidia CUDA")
+            self.compute_type = "cuda"
+        elif torch.backends.mps.is_available():
+            logging.info("Using Apple Silicon")
+            self.compute_type = "mps"
+        else:
+            logging.info("Using CPU")
+            self.compute_type = "cpu"
         self.repo_id = "stabilityai/stable-diffusion-2-inpainting"
         self.pipe = DiffusionPipeline.from_pretrained(self.repo_id, torch_dtype=torch.float16, revision="fp16")
         self.pipe.scheduler = DPMSolverMultistepScheduler.from_config(self.pipe.scheduler.config)
-        self.photo_x: int = 512
-        self.photo_y: int = 512
+        self.photo_x: int = 1024
+        self.photo_y: int = 1024
         self.pipe.to(self.compute_type)
         self.theme: PhotoTheme = theme
         self.prompt_text: str = "Photo"
@@ -70,15 +79,10 @@ class PhotoManipulation():
         else:
             # Scale up then crop as too small
             logging.info(f"Scaling and cropping needed - image is below {self.photo_x}x{self.photo_y}")
-            x_percent = (self.photo_x / float(photo.size[0]))
-            y_percent = int((float(photo.size[1]) * float(x_percent)))
-            photo = photo.resize((x_percent, y_percent), Image.Resampling.LANCZOS)
-            # Crop it down
-            left = (width - self.photo_x)/2
-            top = (height - self.photo_y)/2
-            right = (width + self.photo_x)/2
-            bottom = (height + self.photo_y)/2
-            photo_crop = photo.crop((left, top, right, bottom))
+            aspect_ratio = photo.height / photo.width 
+            new_width = self.photo_x
+            new_height = int(new_width * aspect_ratio)
+            photo = photo.resize((new_width, new_height), Image.Resampling.LANCZOS)
         if env == "DEV":
             photo_crop.save(f"__crop_{person}")
         return photo_crop   
@@ -114,8 +118,8 @@ class PhotoManipulation():
             num_images_per_prompt=1,
             num_inference_steps=250,
             guidance_scale=8.5,
-            width=self.photo_x*2,
-            height=self.photo_y*2,
+            width=self.photo_x,
+            height=self.photo_y,
             eta=0.0,
             generator=torch.Generator(device=self.compute_type),
             output_type="pil"

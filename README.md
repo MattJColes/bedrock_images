@@ -5,7 +5,7 @@
     * Run `python3 -m venv venv`
     * Run `source venv/bin/activate`
     * Run `pip install -r requirements.txt`
-* Download some photos and update the list of photos in `main.py` people_photos array. We resize the photo if not 512x512 but for best results have your face in the middle of the image.
+* Download some photos and update the list of photos in `main.py` people_photos array. We resize the photo if not 1024x1024 but for best results have your face in the middle of the image.
 * Run `python main.py`
 * And Enjoy!
 
