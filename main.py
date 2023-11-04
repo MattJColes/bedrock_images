@@ -3,7 +3,7 @@ import logging
 
 import numpy as np
 from PIL import Image, ImageOps
-from diffusers import StableDiffusionInpaintPipeline, RePaintPipeline, RePaintScheduler
+from diffusers import DiffusionPipeline, DPMSolverMultistepScheduler
 import cv2
 import torch
 from torchvision.transforms import GaussianBlur
@@ -27,16 +27,15 @@ class PhotoTheme(Enum):
 class PhotoManipulation():
     def __init__(self, theme: PhotoTheme = PhotoTheme.CHRISTMAS):
         self.compute_type = "cuda" # cuda = nvidia, mps = apple silicon, cpu = non gpu accelerated
-        self.pipe = StableDiffusionInpaintPipeline.from_pretrained(
-            "stabilityai/stable-diffusion-2-inpainting",
-            torch_dtype=torch.float16,
-        )
+        self.repo_id = "stabilityai/stable-diffusion-2-inpainting"
+        self.pipe = DiffusionPipeline.from_pretrained(self.repo_id, torch_dtype=torch.float16, revision="fp16")
+        self.pipe.scheduler = DPMSolverMultistepScheduler.from_config(self.pipe.scheduler.config)
         self.photo_x: int = 512
         self.photo_y: int = 512
         self.pipe.to(self.compute_type)
         self.theme: PhotoTheme = theme
         self.prompt_text: str = "Photo"
-        self.negative_prompt_text: str = "Blurred, stylized, cartoony, summer, bokeh, murky, bad, deformed, ugly, bad anotomy"
+        self.negative_prompt_text: str = "out of frame, lowres, text, error, cropped, worst quality, low quality, jpeg artifacts, ugly, duplicate, morbid, mutilated, out of frame, extra fingers, mutated hands, poorly drawn hands, poorly drawn face, mutation, deformed, blurry, dehydrated, bad anatomy, bad proportions, extra limbs, cloned face, disfigured, gross proportions, malformed limbs, missing arms, missing legs, extra arms, extra legs, fused fingers, too many fingers, long neck, username, watermark, signature, closed eyes, squinting, deformed eyes"
         self._define_theme_prompt()
 
     def _define_theme_prompt(self):
@@ -48,7 +47,6 @@ class PhotoManipulation():
             self.prompt_text = "Photo of a extremely hairy person wearing caveman outfit. The background of the photo is a forest during autumn with a cave in the distance and a fireplace nearby"
         elif self.theme == PhotoTheme.PROGRAMMER:
             self.prompt_text = "Photo of a scruffy long haired programmer wearing a hoodie and tshirt. The background of the photo is the inside of their computer lab at night time, very dark, with lots of computer keyboards and screens as well as a few books scattered in the distance, and a coffee mug, lots of dust on a bookshelf"
-            self.negative_prompt_text = "Blurred, stylized, cartoony, summer, bokeh, murky, green, outdoors, bad, deformed, ugly, bad anotomy"
         elif self.theme == PhotoTheme.DEVSHED:
             self.prompt_text = "Photo of a scruffy, hairy programmer wearing a hoodie and tshirt. Set in the 1990's. They are inside a wood garden shed cabin with corrugated iron, lots of book shelves, computers, books, keyboards and hardware"
         elif self.theme == PhotoTheme.SUPERSTAR:
@@ -115,11 +113,11 @@ class PhotoManipulation():
             mask_image=mask,
             num_images_per_prompt=1,
             num_inference_steps=250,
-            guidance_scale=7.5,
+            guidance_scale=9.5,
             width=self.photo_x,
             height=self.photo_y,
             eta=0.0,
-            generator=torch.Generator(device=self.compute_type).manual_seed(0),
+            generator=torch.Generator(device=self.compute_type),
             output_type="pil"
         ).images[0]
         photo_output.save(f"output_{person}") # Save our completed image with its seed number as the filename.
@@ -130,7 +128,7 @@ def process_photo(image_filename: str):
     photo: Image = Image.open(image_filename)
     crop_photo: Image = pm.crop_photo(photo)
     mask_photo: Image = pm.create_mask(crop_photo)
-    pm.update_photo(crop_photo, mask_photo)
+    pm.update_photo(photo=crop_photo, mask=mask_photo)
 
 
 people_photos: list = ["photo.png", "photo2.png", "photo_aaron.png", "photo_paul.png", "photo_matt.png", "photo_bella.png"]
