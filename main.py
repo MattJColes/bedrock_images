@@ -26,7 +26,7 @@ class PhotoTheme(Enum):
 
 class PhotoManipulation():
     def __init__(self, theme: PhotoTheme = PhotoTheme.CHRISTMAS):
-        self.compute_type = "cuda" # cuda = nvidia, mps = apple silicon, cpu = non gpu accelerated
+        self.compute_type = "mps" # cuda = nvidia, mps = apple silicon, cpu = non gpu accelerated
         self.repo_id = "stabilityai/stable-diffusion-2-inpainting"
         self.pipe = DiffusionPipeline.from_pretrained(self.repo_id, torch_dtype=torch.float16, revision="fp16")
         self.pipe.scheduler = DPMSolverMultistepScheduler.from_config(self.pipe.scheduler.config)
@@ -113,9 +113,9 @@ class PhotoManipulation():
             mask_image=mask,
             num_images_per_prompt=1,
             num_inference_steps=250,
-            guidance_scale=9.5,
-            width=self.photo_x,
-            height=self.photo_y,
+            guidance_scale=8.5,
+            width=self.photo_x*2,
+            height=self.photo_y*2,
             eta=0.0,
             generator=torch.Generator(device=self.compute_type),
             output_type="pil"
