@@ -1,15 +1,14 @@
-# Experimenting with Bedrock and Stable Diffusion
+# Experimenting with Stable Diffusion
 
 ### Getting Started:
-* Setup an Stability.AI account and get an API key https://platform.stability.ai/docs/getting-started/authentication
-* Store the API key in a .env file. I have an example without a key called example.env here
 * Have Python and Pip installed, then in this directory run
     * Run `python3 -m venv venv`
     * Run `source venv/bin/activate`
     * Run `pip install -r requirements.txt`
-* Download some photos and update the list of photos in `main.py` people_photos array.
+* Download some photos and update the list of photos in `main.py` people_photos array. We resize the photo if not 512x512 but for best results have your face in the middle of the image.
+* In `python main.py` set the self.compute_type field to the GPU or CPU you are using. `cuda` = nvidia, `mps` = apple silicon, `cpu` = non gpu accelerated.
 * Run `python main.py`
 * And Enjoy!
 
 ### Notes:
-Currently am using just Stable Diffusion as I need the model `stable-inpainting-512-v2-0` within Bedrock for best results.
+Currently am using just Stable Diffusion as the model `stable-inpainting-512-v2-0` has yet to come into Bedrock and is needed for best results.

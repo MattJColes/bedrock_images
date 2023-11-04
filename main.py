@@ -1,15 +1,18 @@
-import io
-import os
 from enum import Enum
-import warnings
+import logging
 
 import numpy as np
-from PIL import Image
-from dotenv import load_dotenv
+from PIL import Image, ImageOps
+from diffusers import StableDiffusionInpaintPipeline, RePaintPipeline, RePaintScheduler
 import cv2
-from stability_sdk import client
-import stability_sdk.interfaces.gooseai.generation.generation_pb2 as generation
+import torch
 from torchvision.transforms import GaussianBlur
+
+env = "DEV" # Change to PROD for production
+if env == "DEV":
+    logging.basicConfig(filename='images.log',level=logging.INFO)
+else:
+    logging.basicConfig(filename='images.log',level=logging.WARNING)
 
 
 class PhotoTheme(Enum):
@@ -22,14 +25,22 @@ class PhotoTheme(Enum):
 
 
 class PhotoManipulation():
-    def __init__(self, theme: PhotoTheme = PhotoTheme.CHRISTMAS):
-        load_dotenv()
-        self.env: dict = dict(os.environ)
-        self.stability_api = client.StabilityInference(
-            key=self.env["STABILITY_KEY"],
-            verbose=True,
-            engine="stable-inpainting-512-v2-0",
-        )
+    def __init__(self, theme: PhotoTheme = PhotoTheme.CHRISTMAS, mode="repaint"):
+        self.compute_type = "cuda" # cuda = nvidia, mps = apple silicon, cpu = non gpu accelerated
+        self.mode = mode
+        if self.mode == "repaint":
+            self.scheduler = RePaintScheduler.from_pretrained("google/ddpm-ema-celebahq-256")
+            self.pipe = RePaintPipeline.from_pretrained("google/ddpm-ema-celebahq-256", scheduler=self.scheduler)
+        elif self.mode == "sd-inpaint":
+            self.pipe = StableDiffusionInpaintPipeline.from_pretrained(
+                "stabilityai/stable-diffusion-2-inpainting",
+                torch_dtype=torch.float16,
+            )
+        else:
+            logging.critical("Provide a mode of either `repaint` or `sd-inpaint`")
+        self.photo_x: int = 512
+        self.photo_y: int = 512
+        self.pipe.to(self.compute_type)
         self.theme: PhotoTheme = theme
         self.prompt_text: str = "Photo"
         self.negative_prompt_text: str = "Blurred, stylized, cartoony, summer, bokeh, murky"
@@ -50,61 +61,103 @@ class PhotoManipulation():
         elif self.theme == PhotoTheme.SUPERSTAR:
             self.prompt_text = "Photo of a famous popstar wearing a red dress. Background of a music concert"
 
-
-    def create_photo(self):
-        pass
+    def crop_photo(self, photo):
+        # Make picture 512x512
+        width, height = photo.size
+        if width == self.photo_x and height == self.photo_y:
+            # This is the right size!
+            logging.info("No cropping needed")
+            photo_crop = photo
+        elif width > self.photo_x and height > self.photo_y:
+            # Crop as too big
+            logging.info(f"Cropping needed - image is above {self.photo_x}x{self.photo_y}")
+            left = (width - self.photo_x)/2
+            top = (height - self.photo_y)/2
+            right = (width + self.photo_x)/2
+            bottom = (height + self.photo_y)/2
+            photo_crop = photo.crop((left, top, right, bottom))
+        else:
+            # Scale up then crop as too small
+            logging.info(f"Scaling and cropping needed - image is below {self.photo_x}x{self.photo_y}")
+            x_percent = (self.photo_x / float(photo.size[0]))
+            y_percent = int((float(photo.size[1]) * float(x_percent)))
+            photo = photo.resize((x_percent, y_percent), Image.Resampling.LANCZOS)
+            # Crop it down
+            left = (width - self.photo_x)/2
+            top = (height - self.photo_y)/2
+            right = (width + self.photo_x)/2
+            bottom = (height + self.photo_y)/2
+            photo_crop = photo.crop((left, top, right, bottom))
+        if env == "DEV":
+            photo_crop.save(f"__crop_{person}")
+        return photo_crop   
 
     def create_mask(self, photo) -> Image:
-        image = cv2.imread(photo)
-        cv_image = np.zeros((512, 512, 1), dtype = np.uint8)
+        logging.info("Creating mask image for photo")
+        photo = photo.convert('RGB')
+        cv_image = np.array(photo) 
+        mask_image = np.zeros((self.photo_x, self.photo_y, 1), dtype = np.uint8)
         face_cascade = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
 
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        gray = cv2.cvtColor(cv_image, cv2.COLOR_BGR2GRAY)
         faces = face_cascade.detectMultiScale(gray, 1.1, 4)
         for (x, y, w, h) in faces:
-            cv2.rectangle(cv_image, (x, y), (x+w, y+h), (255, 255, 255), -1)
-        cv_image = np.squeeze(cv_image, axis=2)
+            cv2.rectangle(mask_image, (x, y), (x+w, y+h), (255, 255, 255), -1)
+        mask_image = np.squeeze(mask_image, axis=2)
 
-        image_mask = Image.fromarray(cv_image)
+        image_mask = Image.fromarray(mask_image)
+        image_mask = ImageOps.invert(image_mask) # invert the black and white masking image for SD local
         blur = GaussianBlur(11,20)
         mask: Image = blur(image_mask)
+        if env == "DEV":
+            mask.save(f"__mask_{person}")
         return mask
 
     def update_photo(self, photo, mask):
-        answers = self.stability_api.generate(
-            prompt=[generation.Prompt(text=self.prompt_text,parameters=generation.PromptParameters(weight=1)), generation.Prompt(text=self.negative_prompt_text,parameters=generation.PromptParameters(weight=-1))],
-            init_image=photo,
-            mask_image=mask,
-            start_schedule=1.0,
-            end_schedule=0.0,
-            cfg_scale=15.0,
-            steps=50,
-            width=1024,
-            height=1024,
-            sampler=generation.SAMPLER_K_DPMPP_2S_ANCESTRAL,
-            guidance_preset=generation.GUIDANCE_PRESET_FAST_BLUE,
-            style_preset="photographic"
-        )
-        for resp in answers:
-            for artifact in resp.artifacts:
-                if artifact.finish_reason == generation.FILTER:
-                    warnings.warn(
-                        "Your request activated the API's safety filters and could not be processed."
-                        "Please modify the prompt and try again.")
-                if artifact.type == generation.ARTIFACT_IMAGE:
-                    global img2
-                    img2 = Image.open(io.BytesIO(artifact.binary))
-                    img2.save(f"output_{person}") # Save our completed image with its seed number as the filename.
-
-    def animate_photo(self, photo, mask):
-        pass
+        logging.info("Making output photo from base photo")
+        if self.mode == "repaint":
+            photo_output = self.pipe(
+                prompt=self.prompt_text,
+                negative_prompt=self.negative_prompt_text,
+                original_image=photo,
+                mask_image=mask,
+                num_images_per_prompt=1,
+                num_inference_steps=250,
+                jump_length=10,
+                jump_n_sample=10,
+                width=self.photo_x,
+                height=self.photo_y,
+                eta=0.0,
+                generator=torch.Generator(device=self.compute_type).manual_seed(0),
+                output_type="pil"
+            ).images[0]
+            photo_output.save(f"output_{person}") # Save our completed image with its seed number as the filename.
+        elif self.mode == "sd-inpaint":
+            photo_output = self.pipe(
+                prompt=self.prompt_text,
+                negative_prompt=self.negative_prompt_text,
+                image=photo,
+                mask_image=mask,
+                num_images_per_prompt=1,
+                num_inference_steps=250,
+                guidance_scale=7.5,
+                width=self.photo_x,
+                height=self.photo_y,
+                eta=0.0,
+                generator=torch.Generator(device=self.compute_type).manual_seed(0),
+                output_type="pil"
+            ).images[0]
+            photo_output.save(f"output_{person}") # Save our completed image with its seed number as the filename.
+        else:
+            logging.critical("Provide a mode of either `repaint` or `sd-inpaint`")
 
 
 def process_photo(image_filename: str):
-    pm = PhotoManipulation(PhotoTheme.CHRISTMAS)
+    pm = PhotoManipulation(theme=PhotoTheme.CHRISTMAS, mode="repaint")
     photo: Image = Image.open(image_filename)
-    mask: Image = pm.create_mask(image_filename)
-    pm.update_photo(photo, mask)
+    crop_photo: Image = pm.crop_photo(photo)
+    mask_photo: Image = pm.create_mask(crop_photo)
+    pm.update_photo(crop_photo, mask_photo)
 
 
 people_photos: list = ["photo.png", "photo2.png", "photo_aaron.png", "photo_paul.png", "photo_matt.png", "photo_bella.png"]
